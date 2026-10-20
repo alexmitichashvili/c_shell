@@ -8,4 +8,17 @@ Tested on Fedora Linux, once ran ./cshell the process starts:\
 the "ls" command works, "help" works, "exit" works, "cd" somehow does not. \
 
 
-docker run -it --rm ghcr.io/alexmitichashvili/cshell:latest
+![CI](https://github.com/alexmitichashvili/c_shell/actions/workflows/ci.yml/badge.svg)
+
+## Build from source
+
+    make
+    ./cshell
+
+## Run with Docker
+
+    docker run -it --rm ghcr.io/YOURNAME/cshell:latest
+
+## Builtins
+
+`cd`, `help`, `exit`
