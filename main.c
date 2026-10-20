@@ -38,6 +38,7 @@ int lsh_cd(char **args){
 
 int lsh_help(char **args){
     int i;
+    (void)args;
     printf("Custom C Shell\n");
     printf("Type program names and arguments, and hit enter.\n");
     printf("The following are built in:\n");
@@ -51,12 +52,13 @@ int lsh_help(char **args){
 }
 
 int lsh_exit(char **args){
+    (void)args;
     return 0;
 }
 
 int lsh_launch(char **args){
-    pid_t pid, wpid;
-    int status;
+    pid_t pid;
+    int status = 0;
 
     pid=fork();
     if(pid==0){
@@ -69,9 +71,9 @@ int lsh_launch(char **args){
         // Error forking
         perror("lsh");
     }else {
-        // Parrent process
+        // Parent process
         do{
-            wpid = waitpid(pid, &status,  WUNTRACED);
+            waitpid(pid, &status,  WUNTRACED);
         }while (!WIFEXITED(status) && !WIFSIGNALED(status));
     }
     return 1;
@@ -81,7 +83,7 @@ int lsh_launch(char **args){
 int lsh_execute(char **args){
     int i;
     if(args[0] == NULL){
-        // An epmty command was entered
+        // An empty command was entered
         return 1;
     }
     for(i = 0; i < lsh_num_builtins();i++){
@@ -98,6 +100,7 @@ char *lsh_read_lines(void){
     int bufsize = LSH_RL_BUFSIZE;
     int position = 0;
     char *buffer = malloc(sizeof(char)*bufsize);
+    char *tmp;
     int c;
 
     if(!buffer){
@@ -109,8 +112,16 @@ char *lsh_read_lines(void){
         //Read a character
         c =getchar();
 
-        //If we hit EOF, replace it with a null character and return
-        if (c==EOF || c == '\n'){
+        if (c == EOF){
+            //End of input: signal the caller to stop the loop
+            if (position == 0){
+                free(buffer);
+                return NULL;
+            }
+            //Last line had no trailing newline, return what we have
+            buffer[position] = '\0';
+            return buffer;
+        }else if (c == '\n'){
             buffer[position] = '\0';
             return buffer;
         }else{
@@ -121,21 +132,24 @@ char *lsh_read_lines(void){
         //If we have exceeded the buffer, reallocate.
         if(position >= bufsize){
             bufsize += LSH_RL_BUFSIZE;
-            buffer = realloc(buffer, bufsize);
-            if(!buffer){
+            tmp = realloc(buffer, bufsize);
+            if(!tmp){
+                free(buffer);
                 fprintf(stderr, "lsh: allocation error\n");
                 exit(EXIT_FAILURE);
             }
+            buffer = tmp;
         }
     }
 }
 
 
 #define LSH_TOK_BUFSIZE 64
-#define LSH_TOK_DELIM "\t\r\n\a"
+#define LSH_TOK_DELIM " \t\r\n\a"
 char **lsh_split_line(char *line){
     int bufsize = LSH_TOK_BUFSIZE, position = 0;
     char **tokens = malloc(bufsize * sizeof(char*));
+    char **tmp;
     char *token;
 
     if(!tokens){
@@ -150,11 +164,13 @@ char **lsh_split_line(char *line){
 
         if(position >= bufsize){
             bufsize += LSH_TOK_BUFSIZE;
-            tokens = realloc(tokens, bufsize * sizeof(char*));
-            if(!tokens){
+            tmp = realloc(tokens, bufsize * sizeof(char*));
+            if(!tmp){
+                free(tokens);
                 fprintf(stderr, "lsh: allocation error\n");
                 exit(EXIT_FAILURE);
             }
+            tokens = tmp;
         }
         token = strtok(NULL, LSH_TOK_DELIM);
     }
@@ -169,7 +185,13 @@ void lsh_loop(void){
 
     do{
         printf("> ");
+        fflush(stdout);
         line = lsh_read_lines();
+        if(line == NULL){
+            //EOF reached, exit cleanly
+            printf("\n");
+            break;
+        }
         args = lsh_split_line(line);
         status = lsh_execute(args);
         free(line);
@@ -179,6 +201,8 @@ void lsh_loop(void){
 
 
 int main(int argc, char **argv){
+    (void)argc;
+    (void)argv;
     // Load config files, if any.
     // Run command loop.
     lsh_loop();
