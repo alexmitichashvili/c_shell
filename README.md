@@ -17,7 +17,7 @@ the "ls" command works, "help" works, "exit" works, "cd" somehow does not. \
 
 ## Run with Docker
 
-    docker run -it --rm ghcr.io/YOURNAME/cshell:latest
+    docker run -it --rm ghcr.io/alexmitichashvili/cshell:latest
 
 ## Builtins
 
