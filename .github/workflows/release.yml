@@ -1,0 +1,26 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build release binary
+        run: make CFLAGS="-Wall -Wextra -std=c11 -O2"
+
+      - name: Package
+        run: tar -czf cshell-${{ github.ref_name }}-linux-x86_64.tar.gz cshell README.md
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: cshell-${{ github.ref_name }}-linux-x86_64.tar.gz
+          generate_release_notes: true
